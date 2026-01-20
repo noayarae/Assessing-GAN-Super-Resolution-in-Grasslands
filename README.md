@@ -8,12 +8,12 @@ High-resolution imagery was collected using UAV flights over the Edwards Plateau
 
 This repository includes scripts for:
 
-Preprocessing UAV and satellite imagery
+- Preprocessing UAV and satellite imagery
 
-Tile extraction and classification
+- Tile extraction and classification
 
-Training and evaluating SRGAN and ESRGAN models
+- Training and evaluating SRGAN and ESRGAN models
 
-Generating downscaled outputs and performance metrics (PSNR, SSIM)
+- Generating downscaled outputs and performance metrics (PSNR, SSIM)
 
 The repository provides a complete landscape-aware pipeline for testing super-resolution performance under heterogeneous ecological conditions, supporting reproducibility and further research in remote sensing and ecological modeling.
