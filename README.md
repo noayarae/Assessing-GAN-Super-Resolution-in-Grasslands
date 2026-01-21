@@ -21,7 +21,7 @@ The repository provides a complete landscape-aware pipeline for testing super-re
 
 ## UAV Image Preprocessing and Raster Clipping
 
-This Python project automates the preprocessing of UAV (drone) and satellite images, including:
+The Python code "pre_proc_v2b_auto2c.py" automates the preprocessing of UAV (drone) and satellite images, including:
 
 - Loading shapefiles and generating buffer zones.
 - Creating a fishnet grid of points within the buffered polygons.
