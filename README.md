@@ -1,4 +1,4 @@
-### Description
+# Description
 
 This repository contains the scripts and workflows associated with the manuscript “Assessing GAN Super-Resolution in Grasslands: The Role of Spatial Heterogeneity and Textural Complexity”.
 
@@ -17,3 +17,40 @@ This repository includes scripts for:
 - Generating downscaled outputs and performance metrics (PSNR, SSIM)
 
 The repository provides a complete landscape-aware pipeline for testing super-resolution performance under heterogeneous ecological conditions, supporting reproducibility and further research in remote sensing and ecological modeling.
+
+
+## UAV Image Preprocessing and Raster Clipping
+
+This Python project automates the preprocessing of UAV (drone) and satellite images, including:
+
+- Loading shapefiles and generating buffer zones.
+- Creating a fishnet grid of points within the buffered polygons.
+- Selecting random points with minimum distance constraints.
+- Generating square polygons around points.
+- Clipping high-resolution (HR) raster images using polygons.
+- Filtering raster tiles based on NoData values.
+
+### Requirements
+
+- Python 3.x
+- geopandas
+- shapely
+- rasterio
+- fiona
+- numpy
+- tqdm
+- scipy
+
+### Example Usage
+
+Set the drone flight index:
+
+```python
+dfg = 16  # 0-based index for flight
+
+
+
+
+
+
+
