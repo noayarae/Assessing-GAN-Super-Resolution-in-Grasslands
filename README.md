@@ -30,6 +30,8 @@ The Python code "pre_proc_v2b_auto2c.py" automates the preprocessing of UAV (dro
 - Clipping high-resolution (HR) raster images using polygons.
 - Filtering raster tiles based on NoData values.
 
+https://github.com/noayarae/Assessing-GAN-Super-Resolution-in-Grasslands/blob/main/imgs/preprocess_flowchart.png?raw=true
+
 ### Requirements
 
 - Python 3.x
