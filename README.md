@@ -66,9 +66,9 @@ Training is performed using a combined loss function that integrates adversarial
 
 
 
+## Computing Tile-Image features
 
-
-
+The "05_compute_all_tile_features_v2.py" script contains a Python workflow for extracting, analyzing, and clustering features from multispectral image tiles derived from UAV and satellite imagery. The code computes vegetation indices (NDVI, SAVI, EVI), landscape structure metrics (number of patches, patch size statistics, NDVI variability), and texture features based on GLCM properties (entropy, contrast, homogeneity, correlation). Extracted features are used to perform unsupervised clustering (K-means) to characterize tiles according to structural and textural patterns. The workflow also supports visualization, cluster-based tile selection, normalization, resizing, and export of image subsets for downstream applications such as super-resolution modeling or landscape analysis.
 
 
 
