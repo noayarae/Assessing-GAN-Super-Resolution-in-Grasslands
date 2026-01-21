@@ -1,9 +1,20 @@
 """
 Environment:  tf_clone
 """
-
+# Import libraries 
 import os, shutil
-
+import numpy as np
+import geopandas as gpd
+from shapely.geometry import Point
+from scipy.spatial import cKDTree
+from shapely.geometry import Polygon
+import rasterio
+from rasterio.mask import mask
+import fiona
+#pip install fiona 
+from rasterio.warp import reproject, Resampling
+import time
+from tqdm import tqdm
 
 def colored(r, g, b, text):
     return f"\033[38;2;{r};{g};{b}m{text}\033[0m"
@@ -12,8 +23,8 @@ def colored(r, g, b, text):
 
 
 
-###############################################################################
-### shp files of flight borders (56 flighs, but some of them look bad. See: D:\work\research_t\downscaling\[compute_time.xlsx]Flight_dates)
+### -------------------- Set file names ---------------------------------------
+### List of shp files of flight borders (56 flighs. See: D:\work\research_t\downscaling\[compute_time.xlsx]Flight_dates)
 border_files = ['border_01_E1.shp', 'border_02_N.shp', 'border_03_NE.shp', 'border_04_S1.shp', 'border_05_S2b.shp',
                 'border_06_E2.shp', 'border_07_W1.shp', 'border_08_W2.shp', 'border_09_E.shp', 'border_10_N.shp',
                 'border_11_W.shp', 'border_12_S.shp', 'border_13_SE.shp', 'border_14_SW1.shp', 'border_15_C.shp',
@@ -49,7 +60,7 @@ List_LR_sub_folder = ['01_2023-04-03_psscene_analytic_sr_udm2', '02_2023-06-09_p
 number_of_times_to_match_LR_to_HR = [8, 3, 6, 8, 6, 8, 7, 4, 6]
 ext_List_LR_sub_folder = [item for item, count in zip(List_LR_sub_folder, number_of_times_to_match_LR_to_HR) for _ in range(count)]
 print(len(ext_List_LR_sub_folder))
-###############################################################################
+# ---
 
 
 ### Inputs (old fashion)
@@ -66,11 +77,12 @@ it_03_LR_tif_folder = "D:/work/research_t/downscaling/pre_proc_imgs/flight_05/f0
 of_01_buffer = "D:/work/research_t/downscaling/pre_proc_imgs/flight_05/f05_buff.shp"
 of_02_rdm_pts = "D:/work/research_t/downscaling/pre_proc_imgs/flight_05/f05_rdm_pts.shp"
 of_03_rdm_sqs = "D:/work/research_t/downscaling/pre_proc_imgs/flight_05/f05_rdm_sqs.shp"
-###################################
+# -----------------------------------------------------------------------------
 
 
 
 
+# -----------------------------------------------------------------------------
 ### more automatized, providing just the index
 dfg = 16 #55 #18     #  <-----  SET the Dron-Flight tif number (Set 0 For flight 1)
 
@@ -119,23 +131,19 @@ it_03_LR_tif_folder = child3_folder_path
 of_01_buffer  = father_folder_path + "/f0" + str(dfg+1) + "_buffer.shp"
 of_02_rdm_pts = father_folder_path + "/f0" + str(dfg+1) + "_random_pts.shp"
 of_03_rdm_sqs = father_folder_path + "/f0" + str(dfg+1) + "_random_sqs.shp"
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
 
-###############################################################################
-### -------------- Get Buffer and save as shp file
-import geopandas as gpd
+# -----------------------------------------------------------------------------
+### --- Set Buffer over the UAV-flight paths and save as shp file
 
 # Load the shapefile
-#------ input_shapefile = "D:/work/research_t/downscaling/ForEfrain/borders/border_04_S1.shp"
 input_shapefile = if_01_border_file
 
-#buffered_shapefile = "D:/work/research_t/downscaling/ForEfrain/buffer_b/t2_buffer_01.shp"
-#buffered_shapefile = "D:/work/research_t/downscaling/ForEfrain/buffer_b/f01_buff.shp"
-#------ buffered_shapefile = "D:/work/research_t/downscaling/pre_proc_imgs/flight_04/f04_buff.shp"
+# buffered_shapefile = "D:/work/research_t/downscaling/pre_proc_imgs/flight_04/f04_buff.shp"
 buffered_shapefile = of_01_buffer
 
 gdf = gpd.read_file(input_shapefile)
@@ -147,19 +155,14 @@ gdf["geometry"] = gdf.geometry.buffer(buffer_distance)
 ### Save the new shapefile with buffer
 gdf.to_file(buffered_shapefile)
 print("Buffered shapefile saved successfully!")
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
 
-###############################################################################
-### Generate points each 3 m & save it as SHP file
-
-import geopandas as gpd
-from shapely.geometry import Point
-import numpy as np
-import time
+# -----------------------------------------------------------------------------
+### Generate points each 3 m & save it as SHP file (like fishnet)
 start_time = time.perf_counter ()  
 
 # Get the bounding box (minx, miny, maxx, maxy)
@@ -198,22 +201,17 @@ fishnet_gdf = gpd.GeoDataFrame(geometry=points, crs="EPSG:32614")
 #fishnet_gdf.to_file("D:/work/research_t/downscaling/ForEfrain/points/t_fishnet_01.shp")
 print("Fishnet grid of points created in memory")#" and saved as 'fishnet_points.shp'")
 print("------> Running Time: ", time.perf_counter() - start_time, "seconds")
-#------> Running Time:  2.333581899991259 seconds
 # ------> Running Time:  6.30373439998948 seconds
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
-###############################################################################
+# -----------------------------------------------------------------------------
 ### Clip Fishnet points
-import geopandas as gpd
 start_time = time.perf_counter ()
 # Load the point shapefile & polygon shapefile 
-#fishnet_points = gpd.read_file("D:/work/research_t/downscaling/ForEfrain/points/t_fishnet_01.shp")
-#buff_polyg = gpd.read_file("D:/work/research_t/downscaling/ForEfrain/buffer_b/t2_buffer_01.shp")
-#buff_polyg = gpd.read_file("D:/work/research_t/downscaling/ForEfrain/buffer_b/f01_buff.shp")
-#------ buff_polyg = gpd.read_file("D:/work/research_t/downscaling/pre_proc_imgs/flight_04/f04_buff.shp")
+# buff_polyg = gpd.read_file("D:/work/research_t/downscaling/pre_proc_imgs/flight_04/f04_buff.shp")
 buff_polyg = gpd.read_file(of_01_buffer)
 
 # Ensure both shapefiles have the same CRS
@@ -229,7 +227,7 @@ clipped_points = gpd.clip(fishnet_gdf, buff_polyg)
 print("Clipping completed! Clipped points saved.")
 print("------> Running Time: ", time.perf_counter() - start_time, "seconds")
 # ------> Running Time:  1.424132300002384 seconds
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
@@ -237,65 +235,10 @@ print("------> Running Time: ", time.perf_counter() - start_time, "seconds")
 
 
 
-###############################################################################
+# -----------------------------------------------------------------------------
 #### Selection of random points
-import geopandas as gpd
-import numpy as np
-from scipy.spatial import cKDTree
-from shapely.geometry import Point
 
-
-
-### ---------- This code uses a file saved on disk (this is improved below by using only a file saved in memory)
-'''
-def subset_points(input_shapefile, output_shapefile, num_points=50, min_distance=50):
-    # Load point shapefile
-    gdf = gpd.read_file(input_shapefile)
-    
-    # Extract point coordinates
-    coords = np.array(list(zip(gdf.geometry.x, gdf.geometry.y)))
-
-    # Randomly shuffle coordinates
-    np.random.seed(50)  # np.random.seed(None)  # Ensures reproducibility
-    np.random.shuffle(coords)
-
-    # Create an empty list to store selected points
-    selected_points = []
-
-    # Iterate through shuffled points and add if they are at least min_distance apart
-    for point in coords:
-        if len(selected_points) == 0:
-            selected_points.append(point)
-        else:
-            # Build KDTree with currently selected points
-            tree = cKDTree(selected_points)
-            
-            # Query the distance of the new point from all selected points
-            min_dist, _ = tree.query(point, k=1)
-
-            if min_dist >= min_distance:
-                selected_points.append(point)
-        
-        # Stop when required number of points is reached
-        if len(selected_points) >= num_points:
-            break  
-
-    # Convert selected points to a GeoDataFrame
-    selected_gdf = gpd.GeoDataFrame(geometry=[Point(x, y) for x, y in selected_points], crs=gdf.crs)
-
-    # Save the subset as a new shapefile
-    selected_gdf.to_file(output_shapefile, driver="ESRI Shapefile")
-    print(f"Subset saved to {output_shapefile}, with {len(selected_points)} points.")
-
-# Example Usage
-input_shapefile = "D:/work/research_t/downscaling/ForEfrain/points/t2_clip_pts_01.shp"
-
-#output_shapefile = "D:/work/research_t/downscaling/ForEfrain/points/D01c_subset_pts_a.shp"  # <--- SET
-output_shapefile = "D:/work/research_t/downscaling/ForEfrain/points/f01_rdm_pts.shp"  # <--- SET
-subset_points(input_shapefile, output_shapefile, num_points=100, min_distance=50)
-#'''
-
-### ---------- This code uses a file saved in memory (fishnet is in Memory)
+### ---------- This code uses a file saved in memory (fishnet is in Memory - No in disk)
 # --- Selection of Random Points ---
 def subset_points_from_gdf(gdf, num_points, min_distance):
     """
@@ -311,7 +254,6 @@ def subset_points_from_gdf(gdf, num_points, min_distance):
     np.random.shuffle(coords)
     
     selected_points = []
-    
     for point in coords:
         if not selected_points:
             selected_points.append(point)
@@ -334,9 +276,8 @@ def subset_points_from_gdf(gdf, num_points, min_distance):
         crs=gdf.crs
     )
 
-
 # Call the function using the in-memory clipped_points GeoDataFrame
-#selected_gdf = subset_points_from_gdf(clipped_points, num_points=1500, min_distance=15)
+# Setting small 'min_distance' may generate too much overlapping between square polygons
 #selected_gdf = subset_points_from_gdf(clipped_points, num_points=1500, min_distance=40)
 #selected_gdf = subset_points_from_gdf(clipped_points, num_points=1500, min_distance=50)
 selected_gdf = subset_points_from_gdf(clipped_points, num_points=1500, min_distance=25) # <------- SET
@@ -348,22 +289,15 @@ rdm_pts_shp = of_02_rdm_pts
 selected_gdf.to_file(rdm_pts_shp, driver="ESRI Shapefile")
 print(colored(220, 200, 0, ("Random point selection completed!", len(selected_gdf))))  #'''
 print("------> Running Time:", time.perf_counter() - start_time, "seconds")
-# ------> Running Time: 17.61539399999998 seconds
 # ------> Running Time: 215.05878850000045 seconds
 # ------> Running Time: 640.4895418000015 seconds
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
-
-
-
-###############################################################################
+# -----------------------------------------------------------------------------
 ### Generate squares
-import geopandas as gpd
-from shapely.geometry import Polygon
-
 def generate_squares(input_shapefile, output_shapefile, square_size):
     # Load point shapefile
     gdf = gpd.read_file(input_shapefile)
@@ -402,18 +336,14 @@ rdm_squares_shp = of_03_rdm_sqs
 
 #generate_squares(input_shapefile, rdm_squares_shp, square_size=60)
 generate_squares(input_shapefile, rdm_squares_shp, square_size=30)           # < ----------SET
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
 
-###############################################################################
+# -----------------------------------------------------------------------------
 ### Create a POLYGON shapefile for each square polygon
-
-import geopandas as gpd
-import os
-
 def split_polygons(input_shapefile, output_folder):
     # Load the shapefile
     gdf = gpd.read_file(input_shapefile)
@@ -445,27 +375,14 @@ os.makedirs(dron_f_path, exist_ok=True)  # Creates folder if it doesn’t exist
 print(f"Directory '{dron_f_path}' created successfully.")
 
 list_pol_files = split_polygons(input_shapefile, dron_f_path)
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
 
-
-
-##########################################################################
+# -----------------------------------------------------------------------------
 ### ------------- Clip HR tif using polygons
-import rasterio
-import geopandas as gpd
-import numpy as np
-import time
-from tqdm import tqdm
-import os
-from rasterio.mask import mask
-import fiona
-#pip install fiona 
-from rasterio.warp import reproject, Resampling
-
 def clip_raster2(raster_path, shp_f, in_path, out_path, expected_size, pixel_size):
     # Read the polygon geometry from the shapefile
     shp_f_full_name = os.path.join(in_path, shp_f)
@@ -567,7 +484,6 @@ def process_rasters(raster_path, list_pol_files, in_path, out_path, expected_siz
         list_tifs.append(out_tif_f)
     return list_tifs
 
-
 # Paths to your files
 #HR_raster_img = "D:/work/research_t/downscaling/ForEfrain/wf_p_resampled/01_E1_r4.tif"
 #HR_raster_img = "D:/work/research_t/downscaling/ForEfrain/wf_p_resampled/04_S1_r.tif"
@@ -597,9 +513,7 @@ list_tifs = process_rasters(HR_raster_img, list_pol_files, square_pol_folder, HR
 print(colored(255, 255, 0, ("------> N_squares processed: "+ str(len(list_tifs)))))
 
 
-
-
-###############
+# ---
 ### Filter HR files only with data (Tiles with no-data are deleted)
 
 def filter_valid_lr_tifs(list_tifs):
@@ -661,15 +575,15 @@ tif_aproved = filter_valid_lr_tifs(list_tifs)
 #-------------- tif_aproved.remove('polygon_61')
 print(colored(0, 255, 255, ('Aproved tif files: ' + str(len(tif_aproved))+' out '+str(len(list_tifs)))))
 print("------> Running Time: ", time.perf_counter() - start_time, "seconds")
-# ------> Running Time:  79.3156077999738 seconds
 # ------> Running Time:  160.8749723000219 seconds
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
 
 
+# -----------------------------------------------------------------------------
 ### ------------- Clip LR tif
 start_time = time.perf_counter()
 #------ LR_raster_img = "D:/work/research_t/downscaling/ForEfrain/Planet_select/01_2023-04-03_psscene_analytic_sr_udm2/composite.tif"
@@ -693,14 +607,14 @@ list_lr_tifs = process_rasters(LR_raster_img, list_pol_aprov_files, square_pol_f
 
 print("------> Running Time: ", time.perf_counter() - start_time, "seconds")
 # ------> Running Time:  1.56105119996937 seconds
-###############################################################################
+# -----------------------------------------------------------------------------
 
 
 
 
 
 
-####################################################
+# -----------------------------------------------------------------------------
 ### Check dimension, number of piixels, file size, cells with and wit no data
 '''
 import rasterio
@@ -743,7 +657,7 @@ with rasterio.open(tif_path) as src:
     print(f"Pixels with data: {count_data}")
     print(f"Pixels with no data: {count_nodata}")
 # '''
-
+# -----------------------------------------------------------------------------
 
 
 
