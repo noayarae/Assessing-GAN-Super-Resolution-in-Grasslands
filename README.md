@@ -56,6 +56,34 @@ Set the drone flight index:
 dfg = 16  # 0-based index for flight
 
 
+## SRGAN And ESRGAN modeling
+
+The Python script (03_SRGAN_ESRGAN_model_v2a_reprod_G2.py) trains and evaluates Super-Resolution GAN (SRGAN) and Enhanced SRGAN (ESRGAN) models for spatial downscaling of remote sensing image tiles using TensorFlow/Keras. The objective is to reconstruct high-resolution UAV (drone) imagery from low-resolution satellite image tiles while preserving fine-scale spatial patterns.
+
+The workflow loads paired LR–HR image tiles stored in NumPy format, preprocesses and splits them into training and test sets, and defines configurable generator and discriminator architectures. The generator supports both SRGAN (residual blocks) and ESRGAN (residual-in-residual dense blocks), while the discriminator is trained to distinguish generated images from real HR samples.
+
+Training is performed using a combined loss function that integrates adversarial loss, VGG19-based perceptual loss, and pixel-wise MAE, with optional total-variation regularization to reduce artifacts. Model performance is monitored using PSNR and SSIM, and intermediate generator checkpoints are saved during training. The script also supports inference with trained or pretrained generator models and provides visual and quantitative evaluation of super-resolved outputs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
