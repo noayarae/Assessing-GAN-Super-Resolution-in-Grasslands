@@ -23,12 +23,17 @@ The repository provides a complete landscape-aware pipeline for testing super-re
 
 The Python code "pre_proc_v2b_auto2c.py" automates the preprocessing of UAV (drone) and satellite images, including:
 
-- Loading shapefiles and generating buffer zones.
-- Creating a fishnet grid of points within the buffered polygons.
-- Selecting random points with minimum distance constraints.
-- Generating square polygons around points.
-- Clipping high-resolution (HR) raster images using polygons.
-- Filtering raster tiles based on NoData values.
+- Loading shapefiles corresponding to UAV flight footprints and delineating flight boundaries.
+- Generating an inner buffer along flight borders to avoid extracting image patches that include NoData or edge artifacts.
+- Creating a fishnet grid of candidate points within the buffered flight polygons.
+- Randomly selecting points while enforcing a minimum separation distance to reduce spatial autocorrelation.
+- Generating square sampling polygons centered on the selected points.
+- Clipping high-resolution (HR) raster imagery using the sampling polygons.
+- Filtering extracted raster tiles based on the proportion of NoData values.
+- Loading and clipping the corresponding low-resolution (LR) raster imagery using the same polygons.
+- Ensuring that an equal number of paired HR and LR image tiles is obtained.
+
+In a subsequent step, the extracted HR and LR image tiles are converted into NumPy (.npy) format using a separate Python script.
 
 ![image_alt](https://github.com/noayarae/Assessing-GAN-Super-Resolution-in-Grasslands/blob/main/imgs/preprocess_flowchart.png?raw=true)
 
